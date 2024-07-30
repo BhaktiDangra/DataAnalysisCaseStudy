@@ -1,0 +1,235 @@
+---
+title: "Case study-trip"
+author: "Bhakti Dangra"
+date: "2024-07-28"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Background
+
+Scenario
+
+You are a junior data analyst working on the marketing analyst team at Cyclistic, a bike-share
+company in Chicago. The director of marketing believes the company’s future success
+depends on maximizing the number of annual memberships. Therefore, your team wants to
+understand how casual riders and annual members use Cyclistic bikes differently. From these
+insights, your team will design a new marketing strategy to convert casual riders into annual
+members. But first, Cyclistic executives must approve your recommendations, so they must be
+backed up with compelling data insights and professional data visualizations.
+
+About the company
+
+In 2016, Cyclistic launched a successful bike-share offering. Since then, the program has grown
+to a fleet of 5,824 bicycles that are geotracked and locked into a network of 692 stations
+across Chicago. The bikes can be unlocked from one station and returned to any other station
+in the system anytime.
+Until now, Cyclistic’s marketing strategy relied on building general awareness and appealing to
+broad consumer segments. One approach that helped make these things possible was the
+flexibility of its pricing plans: single-ride passes, full-day passes, and annual memberships.
+Customers who purchase single-ride or full-day passes are referred to as casual riders.
+Customers who purchase annual memberships are Cyclistic members.
+
+Ask
+
+Business Task In order to maximize the number of annual membership, I, data analyst, will find trend and patterns among casual riders and membership riders, and identify potential riders who can get benefit from annual membership. I do not need to raise awareness of annual membership among casual riders as they are already aware of the program.
+
+Stakeholders
+
+The director of marketing
+The marketing analysis team
+Cyclistic's Executive team
+
+Stakeholder's expectation Design marketing strategies aimed at converting casual riders into annual members. In order to do that, however, the marketing analyst team needs to better understand how annual members and casual riders differ, why casual riders would buy a membership, and how digital media could affect their marketing tactics. The marketing team is interested in analyzing the Cyclistic historical bike trip data to identify trends.
+
+
+Prepare
+
+
+DATA TYPE check
+
+1.ROOOC Check
+2.Sampling bias
+3.Observer bias
+4.Interpretation bias
+5.Confirmation bias
+
+About the data set:
+
+Since Cyclistic is a fictional company, I will use Divvy’s, a bike-share program based in Chicago, data from May 2020 – April 2021 to complete this case study. To download the data, please use this link. This data was made public by Motivate International Inc, under this license. Due to data privacy issues, personal information has been removed or encrypted.
+
+
+Install relevant packages
+
+install.packages("tidyverse")
+install.packages("dplyr")
+install.packages("lubridate")
+install.packages("geosphere")
+
+
+
+
+Library
+```{r library}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(geosphere)
+```
+
+Trip Data
+```{r input data}
+tripdata_202401 <- read.csv ("202401-divvy-tripdata.csv")
+tripdata_202402 <- read.csv ("202402-divvy-tripdata.csv")
+tripdata_202403 <- read.csv ("202403-divvy-tripdata.csv")
+tripdata_202404 <- read.csv ("202404-divvy-tripdata.csv")
+tripdata_202405 <- read.csv ("202405-divvy-tripdata.csv")
+tripdata_202406 <- read.csv ("202406-divvy-tripdata.csv")
+```
+
+Data Check
+```{r data check}
+colnames(tripdata_202401)
+colnames(tripdata_202402)
+colnames(tripdata_202403)
+colnames(tripdata_202404)
+colnames(tripdata_202405)
+colnames(tripdata_202406)
+```
+
+combine data
+```{r combine data}
+All_trip <- bind_rows(tripdata_202401,tripdata_202402,tripdata_202403,tripdata_202404,tripdata_202405,tripdata_202406)
+```
+
+```{r check all trip data}
+colnames(All_trip)
+str(All_trip)
+```
+Process
+
+New column
+```{r Add columns}
+All_trip$start_date <- as.Date(All_trip$started_at) 
+All_trip$start_datetime <- ymd_hms(All_trip$started_at, quiet = TRUE)
+All_trip$month <- format(as.Date(All_trip$start_date), "%m")
+All_trip$day <- format(as.Date(All_trip$start_date), "%d")
+All_trip$year <- format(as.Date(All_trip$start_date), "%Y")
+All_trip$day_of_week <- format(as.Date(All_trip$start_date), "%A")
+All_trip$end_datetime <- ymd_hms(All_trip$ended_at, quiet = TRUE)
+All_trip$start_Time <- format(All_trip$start_datetime, "%H:%M:%S")
+All_trip$end_Time <- format(All_trip$end_datetime, "%H:%M:%S")
+All_trip$duration <- (All_trip$end_datetime - All_trip$start_datetime)
+All_trip$ride_distance <- distGeo(matrix(c(All_trip$start_lng, All_trip$start_lat), ncol = 2), matrix(c(All_trip$end_lng, All_trip$end_lat), ncol = 2))
+
+```
+
+
+```{r check all trip data--2}
+colnames(All_trip)
+str(All_trip)
+```
+Calculation
+
+```{r}
+All_trip$duration <- as.numeric(as.character(All_trip$duration))
+is.numeric(All_trip$duration)
+```
+Remove bad data
+```{r}
+all_trips <- All_trip[All_trip$duration != 0, ]
+```
+
+Check new data
+```{r}
+dim(all_trips) 
+View(all_trips)
+summary(all_trips)
+```
+Remove duplicate ID
+```{r}
+all_trips_v2 <- all_trips[!duplicated(all_trips$ride_id),]
+dim(all_trips_v2) 
+summary(all_trips_v2)
+```
+Analysis
+```{r}
+all_trips_v2$day_of_week <- 
+    ordered(all_trips_v2$day_of_week, levels = c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'))
+
+all_trips_v2 %>%
+  group_by(member_casual,day_of_week) %>%
+  summarise(number_of_rides=n(), .groups = "drop") %>%
+  arrange(day_of_week)
+```
+
+```{r}
+summarized_data <- all_trips_v2 %>%
+  group_by(member_casual, day_of_week) %>%
+  summarise(number_of_rides = n(), .groups = "drop") %>%
+  arrange(day_of_week)
+
+ggplot(data = summarized_data, aes(x = day_of_week, y = number_of_rides, fill = member_casual)) + 
+  geom_bar(position = "dodge", stat = "identity")
+```
+
+```{r}
+all_trips_v2 %>%
+  group_by(member_casual,day_of_week) %>%
+  summarise(sum(duration),.groups ="drop") %>%
+  arrange(day_of_week)
+```
+```{r}
+summarized_data <- all_trips_v2 %>%
+  group_by(member_casual,day_of_week) %>%
+  summarise (total_duration=sum(duration),.groups ="drop") %>%
+  arrange(day_of_week)
+    ggplot(data = summarized_data, aes(x = day_of_week, y = total_duration, fill = member_casual)) + 
+  geom_bar(position = "dodge", stat = "identity")
+```
+```{r}
+all_trips_v2 %>%
+  group_by(month,member_casual) %>%
+  summarise(number_of_rides=n(),.groups = "drop")%>%
+  arrange(month)
+```
+
+```{r}
+all_trips_v2 %>%
+  group_by(month,member_casual) %>%
+  summarise(number_of_rides=n(),.groups = "drop")%>%
+  arrange(month)%>%
+  ggplot(aes(x=month,y=number_of_rides,fill=member_casual))+
+  geom_bar(position = "dodge", stat = "identity")
+```
+```{r}
+all_trips_v2 %>%
+  group_by(member_casual) %>%
+  filter(ride_distance < 10000)%>%
+  ggplot(aes(x = ride_distance, fill = member_casual)) +
+  geom_histogram()
+```
+
+It looks like casual users take longer bike rides compared to regular members. This suggests that casual users might use the bikes more for fun or leisure, while regular members might use them more for practical reasons, like commuting.
+
+Share
+
+Conclusion:
+
+*Casual users tend to use the bikes for leisure and tourism, especially on weekends, which suggests they enjoy longer rides and recreational activities.
+
+*Annual users primarily use the bikes for commuting or practical purposes during weekdays, indicating a more routine and functional use of the service.
+
+*Casual users may prefer biking for social outings or exploring new places, as reflected in their longer ride distances and weekend activity.
+
+*Annual users are more likely to incorporate biking into their daily routines, possibly for work or other regular activities, resulting in shorter and more frequent rides during the workweek.
+
+*The difference in ride patterns highlights the diverse ways people utilize bike-sharing services, with casual users focusing on enjoyment and annual users on practicality.
+
