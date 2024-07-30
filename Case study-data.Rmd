@@ -65,12 +65,12 @@ Since Cyclistic is a fictional company, I will use Divvy’s, a bike-share progr
 
 
 Install relevant packages
-
+```{r Install relevant package}
 install.packages("tidyverse")
 install.packages("dplyr")
 install.packages("lubridate")
 install.packages("geosphere")
-
+```
 
 
 
